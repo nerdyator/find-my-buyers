@@ -46,7 +46,7 @@ export function card(name, out, known) {
 }
 
 // one sheet row per buyer, keys match the Apps Script in docs/guide.md. A leading ' stops Sheets running web text as a formula.
-const cell = v => /^[=+\-@]/.test(String(v ?? '')) ? "'" + v : v ?? '';
+const cell = v => /^[\s\u0000-\u001f]*[=+\-@＝＋－＠]/.test(String(v ?? '')) ? "'" + v : v ?? '';
 export const sheetRow = s => ({ company: cell(s.company), type: cell(s.types.join(' + ')), heat: heat(s), headline: cell(s.headline), source_url: cell(s.source_url), why_now: cell(s.why_now) });
 
 // shortcut: copied from P.scout in index.html, keep both in sync until the prompts move to a shared module.

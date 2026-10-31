@@ -41,6 +41,9 @@ assert.doesNotMatch(linked('javascript:alert(1)'), /source>/);
 const row = sheetRow({ ...clue('=IMPORTXML("http://evil")', 'hiring'), types: ['hiring', 'event'], headline: '+1 raise' });
 assert.equal(row.company, `'=IMPORTXML("http://evil")`);
 assert.equal(row.headline, "'+1 raise");
+assert.equal(sheetRow({ ...clue(' \t=1+1', 'event'), types: ['event'] }).company, "' \t=1+1");
+assert.equal(sheetRow({ ...clue('＝HYPERLINK("x")', 'event'), types: ['event'] }).company, `'＝HYPERLINK("x")`);
+assert.equal(sheetRow({ ...clue('Asaya', 'event'), types: ['event'] }).company, 'Asaya');
 assert.equal(row.type, 'hiring + event');
 assert.equal(typeof row.heat, 'number');
 

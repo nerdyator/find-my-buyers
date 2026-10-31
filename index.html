@@ -231,6 +231,7 @@ button{font-family:inherit;cursor:pointer;color:var(--ink)}
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const safeUrl=u=>/^https?:\/\//i.test(String(u||'').trim())?String(u).trim():''; // links come from the AI or a run file: never javascript:
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const TODAY=new Date().toISOString().slice(0,10);
 let mode='company', RUN=null, busy=false, t0=0, tick=null, replaying=false, RECIPE=null;
@@ -309,7 +310,7 @@ const render={
   top(p){ const s=p.s, C=$('#center'); C.classList.add('hero');
     C.innerHTML=`<div class="hh" title="Heat score out of 100">${heat(s)}</div><div class="lbl">CALL FIRST</div><h2>${esc(s.company)}</h2>
       <p>${esc(s.headline)}${s.date?` · ${esc(s.date)}`:''}</p><p><b>Why now:</b> ${esc(s.why_now)}</p>
-      <div class="hrow"><button class="go">Write to them →</button>${s.source_url?`<a href="${esc(s.source_url)}" target="_blank">source ↗</a>`:''}</div>`;
+      <div class="hrow"><button class="go">Write to them →</button>${safeUrl(s.source_url)?`<a href="${esc(safeUrl(s.source_url))}" target="_blank" rel="noopener">source ↗</a>`:''}</div>`;
     C.querySelector('.go').onclick=()=>openLetter(clues.find(c=>c.s.company===s.company));
     // re-tier by rank once scoring is done: scores cluster, so absolute tiers rarely make anything look weak
     [...clues].sort((a,b)=>heat(b.s)-heat(a.s)).forEach((c,i,all)=>{ const t=i<3?'hot':i<all.length/2?'warm':'cool';
@@ -326,7 +327,7 @@ function addClue(s){
   const h=heat(s), cls=h>=75?'hot':h>=55?'warm':'cool', r=(Math.random()*7-3.5).toFixed(1)+'deg';
   const el=document.createElement('div'); el.className='clue '+cls; el.style.setProperty('--r',r);
   el.style.left=SLOTS[i][0]+'%'; el.style.top=SLOTS[i][1]+'%'; el.style.transform=`rotate(${r})`;
-  const link=s.source_url?`<a href="${esc(s.source_url)}" target="_blank" onclick="event.stopPropagation()">${esc(s.source_title||'source')}</a>`:esc(s.source_title||'');
+  const link=safeUrl(s.source_url)?`<a href="${esc(safeUrl(s.source_url))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(s.source_title||'source')}</a>`:esc(s.source_title||'');
   el.innerHTML=`<div class="heat" title="Heat score: how strong this signal is, out of 100. Combines fit (do they match the buyer), freshness (how recent) and intent (how close to buying).">${h}</div><div class="tag"><span>${esc(String(s.type||'clue').toUpperCase())}</span><span>${esc(s.date||'')}</span></div>
     <div class="co">${esc(s.company)}</div><div>${esc(s.headline)}</div><div class="src">${link}</div><span class="stamp">${{hot:'CALL NOW',warm:'CLICK TO WRITE',cool:'WATCH'}[cls]}</span>`;
   el.style.order=100-h; // phone list: hottest first
