@@ -1,0 +1,38 @@
+name: Morning buyer alert
+
+on:
+  schedule:
+    - cron: '30 2 * * *'   # 08:00 IST
+    - cron: '*/30 * * * *' # session only, so unattended runs show up by demo time. Remove after the demo.
+  workflow_dispatch:
+    inputs:
+      fresh:
+        description: Ignore buyers already sent (for demos)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # seen.json lives in the Actions cache, so the job never pushes to the repo
+      - uses: actions/cache@v4
+        with:
+          path: seen.json
+          key: seen-${{ github.run_id }}
+          restore-keys: seen-
+      - run: node scripts/watch.test.mjs
+      - run: node scripts/watch.mjs recipes/whatsapp-platform.json
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          FRESH: ${{ inputs.fresh }}
+          FOCUS: India

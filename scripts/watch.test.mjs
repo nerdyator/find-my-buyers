@@ -1,0 +1,30 @@
+// Checks the dedupe and double-signal rules. Run: node scripts/watch.test.mjs
+import assert from 'node:assert/strict';
+import { triage, heat, card } from './watch.mjs';
+
+const clue = (company, type, extra = {}) => ({ company, type, headline: 'h', why_now: 'w', fit: 4, freshness: 4, intent: 3, ...extra });
+
+// two hunts return the same company with different types: one buyer, double signal
+let seen = {};
+let out = triage([clue('Bubble Me', 'hiring'), clue('bubble me', 'competitor')], seen, '2026-10-31');
+assert.equal(out.length, 1);
+assert.equal(out[0].double, true);
+assert.deepEqual(seen.bubbleme.types, ['hiring', 'competitor']);
+
+// already sent with the same type: dropped
+out = triage([clue('Bubble Me', 'hiring')], seen);
+assert.equal(out.length, 0);
+
+// sent before, now a new type: comes back as a double
+seen = { proteinpantry: { company: 'Protein Pantry', types: ['expansion'] } };
+out = triage([clue('Protein Pantry', 'event'), clue('Asaya', 'expansion')], seen);
+assert.deepEqual(out.map(s => [s.company, s.double]), [['Protein Pantry', true], ['Asaya', false]]);
+
+// double bonus never pushes heat past 100
+assert.equal(heat({ fit: 5, freshness: 5, intent: 5, double: true }), 100);
+
+// Slack text is escaped, and an empty day still says something
+assert.match(card('Sobot', [{ ...clue('Marks & Spencer', 'event'), types: ['event'] }], 0).blocks[1].text.text, /Marks &amp; Spencer/);
+assert.match(card('Sobot', [], 7).text, /7 already known/);
+
+console.log('watch rules ok');

@@ -3,7 +3,7 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 const unesc = s => String(s || '').replace(/<!\[CDATA\[|\]\]>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&nbsp;/g, ' ');
 const strip = s => unesc(String(s || '').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
 
-async function gnews(q, n = 10) {
+export async function gnews(q, n = 10) {
   const u = 'https://news.google.com/rss/search?q=' + encodeURIComponent(q + ' when:1y') + '&hl=en-US&gl=US&ceid=US:en';
   const t = await (await fetch(u, { headers: { 'User-Agent': UA } })).text();
   return [...t.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, n).map(m => {
@@ -13,7 +13,7 @@ async function gnews(q, n = 10) {
   });
 }
 
-async function bing(q, n = 6) {
+export async function bing(q, n = 6) {
   const t = await (await fetch('https://www.bing.com/search?q=' + encodeURIComponent(q) + '&setlang=en&cc=us', { headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9' } })).text();
   const out = [];
   for (const blk of t.match(/<li class="b_algo"[\s\S]*?<\/li>/g) || []) {
