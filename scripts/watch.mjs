@@ -1,6 +1,6 @@
 // Morning buyer alert: run a recipe, let the AI judge the evidence, post new buyers to Slack.
 // Usage: node scripts/watch.mjs [recipe.json] [--dry] [--fresh]
-// Env: OLLAMA_API_KEY, SLACK_WEBHOOK_URL, FOCUS (e.g. India), FRESH=true, SEEN (default seen.json)
+// Env: OLLAMA_API_KEY, SLACK_WEBHOOK_URL, SHEET_WEBHOOK_URL (optional), FOCUS (e.g. India), FRESH=true, SEEN (default seen.json)
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { gnews, bing } from '../api/search.js';
@@ -45,9 +45,14 @@ export function card(name, out, known) {
   };
 }
 
+// one sheet row per buyer, keys match the Apps Script in docs/guide.md. A leading ' stops Sheets running web text as a formula.
+const cell = v => /^[=+\-@]/.test(String(v ?? '')) ? "'" + v : v ?? '';
+export const sheetRow = s => ({ company: cell(s.company), type: cell(s.types.join(' + ')), heat: heat(s), headline: cell(s.headline), source_url: cell(s.source_url), why_now: cell(s.why_now) });
+
 // shortcut: copied from P.scout in index.html, keep both in sync until the prompts move to a shared module.
 const scoutPrompt = (b, items, focus, ev) => `Today is ${TODAY}. Find REAL, recent (last 12 months) public evidence that specific organisations are about to need what ${b.name} sells (${b.sells}).
 Trigger moment: ${b.trigger_moment}. ${focus ? 'Focus: ' + focus + '.' : ''}
+${(b.buyers || []).length ? `Ideal buyers: ${b.buyers.join(', ')}. Score fit 1-2 for organisations outside these.` : ''}
 Look for:
 ${items.map((r, i) => `${i + 1}. ${r.signal}: ${r.look_for}${r.intent ? ` (intent if found: ${r.intent})` : ''}`).join('\n')}
 Only include organisations that appear in the search results below. Never invent companies, dates, people or links. Any source_url must be one of the URLs below.
@@ -67,8 +72,9 @@ async function askOllama(prompt) {
     const j = await r.json().catch(() => ({ error: 'status ' + r.status }));
     const err = j.error && String(j.error.message || j.error);
     if (!err) {
+      let d;
+      try { d = JSON.parse(j.message?.content || '{}'); } catch { if (n === 2) throw new Error('the reply came back garbled'); continue; }
       // format:'json' forces an object, so unwrap the array the model put inside one
-      const d = JSON.parse(j.message?.content || '{}');
       return Array.isArray(d) ? d : Object.values(d).find(Array.isArray) || (d.company ? [d] : []);
     }
     if (n === 2 || !/rate|limit|quota|overload|busy|429|5\d\d/i.test(err)) throw new Error(err);
@@ -122,6 +128,13 @@ async function main() {
     if (!r.ok) throw new Error(`slack said ${r.status}: ${await r.text()}`);
   }
   writeFileSync(SEEN, JSON.stringify({ ...seen, ...base }, null, 2));
+
+  // sheet failures only warn: failing the job would skip the cache save and re-send today's buyers to Slack
+  if (process.env.SHEET_WEBHOOK_URL) for (const s of out) {
+    const r = await fetch(process.env.SHEET_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sheetRow(s)) }).catch(e => ({ ok: false, status: e.message }));
+    if (!r.ok) { console.warn(`sheet stopped at ${s.company}: ${r.status}`); break; }
+  }
+  if (process.env.SHEET_WEBHOOK_URL) console.log(`${out.length} rows sent to the sheet`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(e => { console.error(e.message); process.exit(1); });
