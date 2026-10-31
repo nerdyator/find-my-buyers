@@ -47,6 +47,8 @@ Make one buyer win the screen and push everything else back.
 | 3 | **Phone list:** in `addClue()` set `el.style.order=100-h`. Add `@media(max-width:600px)`: the wall becomes a scrolling flex column (`.clue{position:static;width:auto}`), `#strings` and `.hint` are hidden, the centre card is static with `order:-1`, and `.letter` becomes `position:fixed` so the letter isn't stuck at the top of a scrolled list. The existing 900px rule gives the chat the top half, so below 600px put the wall first (`.wall{order:-1}`) and give it about 65% of the height. | 8 min | In DevTools at iPhone size: hero on top, then hottest to coolest |
 | 4 | Run once on the WhatsApp recipe and **Save run** (this is the backup). | 2 min | Replay shows the Call first card |
 
+**What changed after testing.** With the strategy track's intent ceiling, scores cluster between 73 and 80, so fixed 75/55 tiers never made anything look weak. The `top` event therefore re-tiers every note by rank: top 3 are hot, the bottom half is cool, the rest are warm. The run also no longer auto-opens a letter at the end, because the letter covered the Call first card. Cool notes fade with `filter`, not `opacity`, because the slap animation holds opacity at 1. On phones, the top bar wraps and the footer is hidden.
+
 Because `top` is an event, Replay plays it back. Runs saved **before** this change don't contain it, so save a fresh run.
 
 ## Stretch (only if there's time)

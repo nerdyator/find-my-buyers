@@ -52,7 +52,7 @@ QUILL  -- for each top 3: search the company + role --> AI --> person + email + 
 Wall shows every clue; letters open as typed notes
 ```
 
-Every step is an **event** (`you`, `typing`, `say`, `center`, `clue`, `letter`, `error`). Events are recorded with timestamps, which is how **Save run** and **Replay** work.
+Every step is an **event** (`you`, `typing`, `say`, `center`, `clue`, `top`, `letter`, `error`). `top` turns the centre card into "Call first" for the hottest buyer. Events are recorded with timestamps, which is how **Save run** and **Replay** work.
 
 ## Buttons
 

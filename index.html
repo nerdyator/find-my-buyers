@@ -99,6 +99,25 @@ button{font-family:inherit;cursor:pointer;color:var(--ink)}
 .clue .src{font-size:11px;margin-top:6px;opacity:.75}
 .clue .src a{color:#7a0c12}
 .clue .stamp{display:inline-block;margin-top:6px;font-family:'Bricolage Grotesque';font-weight:800;font-size:10px;border:2px solid var(--ink);padding:1px 6px;border-radius:4px;background:var(--rose)}
+/* heat tiers: hot shouts, cool steps back. scale, not transform, because transform holds each note's rotation */
+.clue.hot{scale:1.06}
+.clue.hot:before{animation:pulse 1.2s ease-in-out infinite}
+.clue.hot .stamp{background:var(--red);color:#fff}
+.clue.cool{filter:grayscale(.5) opacity(.55);scale:.9} /* filter, not opacity: the slap animation holds opacity at 1 */
+.clue.cool:hover{filter:none}
+.clue.cool .stamp{background:#fff}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(227,38,46,0)}from,to{box-shadow:0 0 0 0 rgba(227,38,46,.7)}}
+
+/* call first: the hottest buyer takes the centre, where every string ends */
+.center.hero{z-index:5;width:min(40%,380px);background:var(--yel);color:var(--ink);border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);text-align:left;padding:16px 18px 18px;transform:translate(-50%,-50%) rotate(-1deg);animation:heroin .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes heroin{from{opacity:0;scale:1.3}}
+.center.hero .lbl{margin:0;color:var(--red);font-size:12px}
+.center.hero h2{font-size:34px;margin:4px 0 2px;padding-right:44px;overflow-wrap:anywhere}
+.center.hero p{color:var(--ink);font-size:14px;margin:6px 0 0}
+.center.hero .hh{position:absolute;right:-16px;top:-18px;width:62px;height:62px;border-radius:50%;background:var(--red);color:#fff;border:3px solid var(--ink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;transform:rotate(10deg)}
+.center.hero .hrow{display:flex;align-items:center;gap:14px;margin-top:14px}
+.center.hero .go{padding:10px 16px}
+.center.hero a{color:var(--ink);font-weight:700;font-size:13px}
 
 /* letter */
 .letter{position:absolute;inset:0;background:rgba(17,17,17,.45);z-index:20;display:flex;align-items:center;justify-content:center;animation:fadein .2s}
@@ -129,6 +148,17 @@ button{font-family:inherit;cursor:pointer;color:var(--ink)}
 .foot{border-top:var(--b);background:var(--ink);color:var(--yel);padding:7px 20px;font-size:13px;font-weight:700;display:flex;justify-content:space-between}
 .foot span:last-child{color:#fff;opacity:.7;font-weight:500}
 @media(max-width:900px){.app{grid-template-columns:1fr;grid-template-rows:50% 50%}.chat{border-right:0;border-bottom:var(--b)}}
+/* phone: the wall becomes one list on top, call first, then hottest to coolest (order is set in addClue) */
+@media(max-width:600px){
+  .app{grid-template-rows:65% 35%}.wall{order:-1;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding:22px 16px}
+  .chat{border-bottom:0;border-top:var(--b)}
+  #strings,.hint{display:none}
+  .center,.center.hero{position:relative;left:auto;top:auto;transform:none;width:auto;flex:none;order:-1}
+  .clue{position:relative;left:auto!important;top:auto!important;width:auto;flex:none;transform:none!important}
+  .letter{position:fixed}
+  .bar{flex-wrap:wrap;gap:6px;padding:8px 12px}.logo{font-size:20px;flex-basis:100%}
+  .bar>span:nth-of-type(-n+2),.bar .q,.sp,.foot{display:none}.tool{font-size:11.5px;padding:4px 8px}
+}
 </style>
 </head>
 <body>
@@ -267,7 +297,7 @@ function bubble(who,html,cls=''){
   $('#feed').appendChild(m); $('#feed').scrollTop=1e9; return m;
 }
 const render={
-  reset(){ $('#feed').innerHTML=''; document.querySelectorAll('.clue').forEach(c=>c.remove()); $('#strings').innerHTML=''; closeLetter();
+  reset(){ $('#center').classList.remove('hero'); $('#feed').innerHTML=''; document.querySelectorAll('.clue').forEach(c=>c.remove()); $('#strings').innerHTML=''; closeLetter();
     $('#center').innerHTML=`<h2>WHO'S<br>BUYING?</h2><p>The crew is on it.</p>`; $('#hint').classList.remove('hidden'); clues=[] },
   you(p){ bubble('you',esc(p.text)) },
   typing(p){ if(typingEls[p.who]) return; typingEls[p.who]=bubble(p.who,'<span class="dots"><b></b><b></b><b></b></span>') },
@@ -275,7 +305,15 @@ const render={
     bubble(p.who, esc(p.text)+(p.chips?`<div class="chips">${p.chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>`:''), p.big?'big':'') },
   center(p){ $('#center').innerHTML=`<h2>${esc(p.name)}</h2><p>${esc(p.one_liner)}</p><div class="lbl">BUYERS SHOW UP WHEN</div><p>${esc(p.trigger_moment)}</p>`; $('#hint').classList.add('hidden') },
   clue(p){ addClue(p.s) },
-  letter(p){ const c=clues.find(c=>c.s.company===p.company); if(c){ c.m=p.m; c.el.querySelector('.stamp').textContent='LETTER READY'; c.el.querySelector('.stamp').style.background='var(--mint)' } if(p.open) openLetter(c,true) },
+  letter(p){ const c=clues.find(c=>c.s.company===p.company); if(c){ c.m=p.m; c.el.querySelector('.stamp').textContent='LETTER READY'; c.el.querySelector('.stamp').style.background='var(--mint)'; c.el.querySelector('.stamp').style.color='var(--ink)' } if(p.open) openLetter(c,true) },
+  top(p){ const s=p.s, C=$('#center'); C.classList.add('hero');
+    C.innerHTML=`<div class="hh" title="Heat score out of 100">${heat(s)}</div><div class="lbl">CALL FIRST</div><h2>${esc(s.company)}</h2>
+      <p>${esc(s.headline)}${s.date?` · ${esc(s.date)}`:''}</p><p><b>Why now:</b> ${esc(s.why_now)}</p>
+      <div class="hrow"><button class="go">Write to them →</button>${s.source_url?`<a href="${esc(s.source_url)}" target="_blank">source ↗</a>`:''}</div>`;
+    C.querySelector('.go').onclick=()=>openLetter(clues.find(c=>c.s.company===s.company));
+    // re-tier by rank once scoring is done: scores cluster, so absolute tiers rarely make anything look weak
+    [...clues].sort((a,b)=>heat(b.s)-heat(a.s)).forEach((c,i,all)=>{ const t=i<3?'hot':i<all.length/2?'warm':'cool';
+      c.el.classList.remove('hot','warm','cool'); c.el.classList.add(t); if(!c.m) c.el.querySelector('.stamp').textContent={hot:'CALL NOW',warm:'CLICK TO WRITE',cool:'WATCH'}[t] }) },
   error(p){ if(typingEls[p.who||'scout']){typingEls[p.who||'scout'].remove(); delete typingEls[p.who||'scout']} bubble(p.who||'scout','ugh, hit a wall: '+esc(p.text)) }
 };
 
@@ -285,12 +323,13 @@ const SLOTS=[[3,4],[28,3],[54,4],[79,5],[2,38],[79,40],[4,71],[29,74],[54,73],[7
 const heat=s=>Math.round(((+s.fit||0)+(+s.freshness||0)+(+s.intent||0))/15*100);
 function addClue(s){
   const i=clues.length; if(i>=SLOTS.length) return;
-  const h=heat(s), cls=h>=75?'':h>=55?'warm':'cool', r=(Math.random()*7-3.5).toFixed(1)+'deg';
+  const h=heat(s), cls=h>=75?'hot':h>=55?'warm':'cool', r=(Math.random()*7-3.5).toFixed(1)+'deg';
   const el=document.createElement('div'); el.className='clue '+cls; el.style.setProperty('--r',r);
   el.style.left=SLOTS[i][0]+'%'; el.style.top=SLOTS[i][1]+'%'; el.style.transform=`rotate(${r})`;
   const link=s.source_url?`<a href="${esc(s.source_url)}" target="_blank" onclick="event.stopPropagation()">${esc(s.source_title||'source')}</a>`:esc(s.source_title||'');
   el.innerHTML=`<div class="heat" title="Heat score: how strong this signal is, out of 100. Combines fit (do they match the buyer), freshness (how recent) and intent (how close to buying).">${h}</div><div class="tag"><span>${esc(String(s.type||'clue').toUpperCase())}</span><span>${esc(s.date||'')}</span></div>
-    <div class="co">${esc(s.company)}</div><div>${esc(s.headline)}</div><div class="src">${link}</div><span class="stamp">CLICK TO WRITE</span>`;
+    <div class="co">${esc(s.company)}</div><div>${esc(s.headline)}</div><div class="src">${link}</div><span class="stamp">${{hot:'CALL NOW',warm:'CLICK TO WRITE',cool:'WATCH'}[cls]}</span>`;
+  el.style.order=100-h; // phone list: hottest first
   const c={s,el,m:null}; el.onclick=()=>openLetter(c); clues.push(c); $('#wall').appendChild(el); requestAnimationFrame(()=>drawString(el));
 }
 function drawString(el){
@@ -453,6 +492,7 @@ Return ONLY JSON: {"name":"short name","one_liner":"what they sell in plain word
 "signals":[{"signal":"short name, max 5 words","type":"tender|hiring|purchase|expansion|regulation|competitor|event|social","look_for":"max 14 words","query":"search query"}]}`,
   scout:(p,items,geo)=>`Today is ${TODAY}. Find REAL, recent (ideally last 12 months) public evidence that specific organisations are about to need what ${p.name} sells (${p.one_liner}).
 Trigger moment: ${p.trigger_moment}. ${geo?'Focus: '+geo+'.':''}
+${(p.buyers||[]).length?`Ideal buyers: ${p.buyers.join(', ')}. Score fit 1-2 for organisations outside these.`:''}
 Look for:
 ${items.map((r,i)=>`${i+1}. ${r.signal}: ${r.look_for} (try: ${r.query})${r.intent?` (intent if found: ${r.intent})`:''}`).join('\n')}
 Only include organisations that appear in your search results. Never invent companies, dates, people or links.
@@ -514,12 +554,13 @@ async function go(){
     if(!found.length){ emit('say',{who:'scout',text:'came back empty handed. try a more specific input or add a focus region.'}); return }
     const top=[...clues].sort((x,y)=>heat(y.s)-heat(x.s)).slice(0,3);
     emit('say',{who:'scout',text:`${found.length} clues on the wall. hottest one is ${top[0].s.company}. quill, you're up.`});
+    emit('top',{s:top[0].s});
     emit('typing',{who:'quill'});
     await Promise.all(top.map(c=>writeFor(c,false).catch(e=>console.warn(e))));
     if(typingEls.quill){typingEls.quill.remove(); delete typingEls.quill}
     const done=top.filter(c=>c.m);
     emit('say',{who:'quill',text:`${done.length} letters ready${done.filter(c=>c.m.name).length?`, ${done.filter(c=>c.m.name).length} with real names`:''}. click any clue and i'll write that one too.`});
-    if(done[0]) emit('letter',{company:done[0].s.company,m:done[0].m,open:true});
+    if(done[0]) emit('letter',{company:done[0].s.company,m:done[0].m,open:false}); // end on Call first, not a letter covering it
   }catch(e){ emit('error',{who:'sniff',text:e.message}) }
   finally{ clock(false); busy=false; $('#go').disabled=false }
 }

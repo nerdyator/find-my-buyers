@@ -51,7 +51,7 @@ Letter (Quill output):
 Saved run (Save run / Replay):
 ```json
 {"input":"","mode":"company|product|keyword","geo":"","model":"","at":"ISO date","profile":{},"recipe":[],"signals":[],
- "events":[{"t":0,"type":"you|typing|say|center|clue|letter|error|reset","p":{}}]}
+ "events":[{"t":0,"type":"you|typing|say|center|clue|top|letter|error|reset","p":{}}]}
 ```
 
 Recipe (Steal the recipe; open it with Replay and Scout uses it instead of Sniff while the input matches `business.name`. Optional `intent` 1-5 per signal is passed to Scout):

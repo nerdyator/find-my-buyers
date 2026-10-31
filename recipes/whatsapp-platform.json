@@ -3,7 +3,7 @@
   "business": {
     "name": "Sobot",
     "sells": "WhatsApp broadcasts, chatbots and shared inbox for growing Indian SMB and mid-market brands (not large enterprises, banks or conglomerates, which build in-house)",
-    "buyers": ["D2C brands", "edtech and coaching institutes", "real estate developers", "clinic and diagnostic chains"],
+    "buyers": ["SMB and mid-market D2C brands", "edtech and coaching institutes", "real estate developers", "clinic and diagnostic chains", "not large enterprises, banks or conglomerate-owned retailers"],
     "trigger_moment": "They start pushing customers to WhatsApp and one phone can no longer keep up.",
     "competitors": ["AiSensy", "Wati", "Interakt", "Gupshup", "Gallabox", "DoubleTick", "Airtel IQ", "GoKwik", "Kaleyra", "Route Mobile", "MSG91", "Twilio"]
   },
