@@ -14,7 +14,7 @@ export const heat = s => Math.min(100, Math.round(((+s.fit || 0) + (+s.freshness
 
 // Keep companies not sent before, or sent before but now showing a new signal type (a double signal). Updates seen.
 export function triage(found, seen, now = TODAY) {
-  const byCo = {};
+  const byCo = Object.create(null); // company keys like "constructor" must not hit Object.prototype
   for (const s of found) {
     const k = keyOf(s.company); if (!k) continue;
     if (byCo[k]) { byCo[k].types.add(s.type); continue; } // two hunts found the same company
@@ -22,7 +22,7 @@ export function triage(found, seen, now = TODAY) {
   }
   const out = [];
   for (const [k, { s, types }] of Object.entries(byCo)) {
-    const old = new Set(seen[k]?.types || []);
+    const old = new Set((Object.hasOwn(seen, k) && seen[k].types) || []);
     if (![...types].some(t => !old.has(t))) continue;
     const all = [...new Set([...old, ...types])];
     out.push({ ...s, types: all, double: all.length > 1 });
@@ -34,7 +34,7 @@ export function triage(found, seen, now = TODAY) {
 export function card(name, out, known) {
   if (!out.length) return { text: `No new buyers for ${name} today (${known} already known).` };
   const day = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
-  const row = s => `${s.double ? '*DOUBLE SIGNAL*  ' : ''}*${esc(s.company)}*  ·  heat ${heat(s)}  ·  ${esc(s.types.join(' + '))}\n${esc(s.headline)}${s.date ? ` (${esc(s.date)})` : ''}\n_Why now:_ ${esc(s.why_now)}${s.source_url ? `\n<${s.source_url}|source>` : ''}`;
+  const row = s => `${s.double ? '*DOUBLE SIGNAL*  ' : ''}*${esc(s.company)}*  ·  heat ${heat(s)}  ·  ${esc(s.types.join(' + '))}\n${esc(s.headline)}${s.date ? ` (${esc(s.date)})` : ''}\n_Why now:_ ${esc(s.why_now)}${/^https?:\/\/[^\s<>|]+$/.test(s.source_url || '') ? `\n<${s.source_url}|source>` : ''}`;
   return {
     text: `${out.length} new buyers for ${name}`,
     blocks: [
@@ -88,6 +88,7 @@ async function hunt(R, items, focus) {
     if (!s?.company) return false;
     const yr = +(String(s.date || '').match(/20\d\d/) || [0])[0];
     if (yr && yr < minYear) return false;
+    if (!urls.has(s.source_url)) s.source_url = ''; // only links that came back from the search, never AI-written ones
     // recipe intent is a ceiling per signal type, same rule as index.html
     const cap = Math.max(0, ...R.signals_to_watch.filter(r => r.type === s.type && r.intent).map(r => +r.intent));
     if (cap) s.intent = Math.min(+s.intent || 0, cap);

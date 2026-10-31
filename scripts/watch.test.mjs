@@ -20,11 +20,21 @@ seen = { proteinpantry: { company: 'Protein Pantry', types: ['expansion'] } };
 out = triage([clue('Protein Pantry', 'event'), clue('Asaya', 'expansion')], seen);
 assert.deepEqual(out.map(s => [s.company, s.double]), [['Protein Pantry', true], ['Asaya', false]]);
 
+// company names that match Object.prototype keys don't crash or collide
+out = triage([clue('Constructor', 'hiring'), clue('toString', 'event')], {});
+assert.equal(out.length, 2);
+
 // double bonus never pushes heat past 100
 assert.equal(heat({ fit: 5, freshness: 5, intent: 5, double: true }), 100);
 
 // Slack text is escaped, and an empty day still says something
 assert.match(card('Sobot', [{ ...clue('Marks & Spencer', 'event'), types: ['event'] }], 0).blocks[1].text.text, /Marks &amp; Spencer/);
 assert.match(card('Sobot', [], 7).text, /7 already known/);
+
+// a link that could break out of Slack's <url|label> syntax is dropped
+const linked = u => card('Sobot', [{ ...clue('A', 'event'), types: ['event'], source_url: u }], 0).blocks[1].text.text;
+assert.match(linked('https://example.com/a'), /<https:\/\/example\.com\/a\|source>/);
+assert.doesNotMatch(linked('https://evil.com|click here'), /source>/);
+assert.doesNotMatch(linked('javascript:alert(1)'), /source>/);
 
 console.log('watch rules ok');
