@@ -58,7 +58,7 @@ Every step is an **event** (`you`, `typing`, `say`, `center`, `clue`, `letter`, 
 
 - **Steal the recipe**: downloads the business profile and the 8 signals (JSON). Reuse it as a template.
 - **Save run**: downloads the whole run (all events) as JSON.
-- **Replay**: plays a saved run back as if live. Good demo backup.
+- **Replay**: plays a saved run back as if live. Good demo backup. Open a recipe file with it instead and Scout hunts with those signals (see `recipes/`).
 - **Use my own key**: optional. Runs use your own AI account instead of the built-in one.
 
 ## Files

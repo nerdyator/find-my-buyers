@@ -1,0 +1,20 @@
+{
+  "recipe": "find-my-buyers/v0.1",
+  "business": {
+    "name": "Sobot",
+    "sells": "WhatsApp broadcasts, chatbots and shared inbox for growing Indian SMB and mid-market brands (not large enterprises, banks or conglomerates, which build in-house)",
+    "buyers": ["D2C brands", "edtech and coaching institutes", "real estate developers", "clinic and diagnostic chains"],
+    "trigger_moment": "They start pushing customers to WhatsApp and one phone can no longer keep up.",
+    "competitors": ["AiSensy", "Wati", "Interakt", "Gupshup", "Gallabox", "DoubleTick", "Airtel IQ", "GoKwik", "Kaleyra", "Route Mobile", "MSG91", "Twilio"]
+  },
+  "signals_to_watch": [
+    {"signal": "Launches WhatsApp ordering", "type": "purchase", "intent": 5, "look_for": "brand starts taking orders, bookings or leads over WhatsApp", "query": "brand launches WhatsApp ordering customers India"},
+    {"signal": "Unhappy with current tool", "type": "competitor", "intent": 5, "look_for": "public complaints about, or a switch away from, Wati, Interakt or Gupshup", "query": "Wati Interakt Gupshup review switching pricing"},
+    {"signal": "Hiring CRM or retention lead", "type": "hiring", "intent": 4, "look_for": "D2C, edtech or clinic hiring a CRM, retention or WhatsApp marketing role", "query": "hiring CRM retention manager D2C brand"},
+    {"signal": "WhatsApp inbox overload", "type": "social", "intent": 4, "look_for": "founder or team posting about drowning in customer WhatsApp messages", "query": "small business overwhelmed WhatsApp customer messages"},
+    {"signal": "Festive sale push", "type": "event", "intent": 3, "look_for": "brand announcing a big Diwali or sale-season campaign", "query": "D2C brand Diwali sale campaign announces"},
+    {"signal": "Fresh D2C funding", "type": "expansion", "intent": 3, "look_for": "D2C, edtech or healthtech raising seed or Series A", "query": "D2C brand raises Series A India"},
+    {"signal": "New cities or stores", "type": "expansion", "intent": 3, "look_for": "brand opening new cities, stores, centres or clinics", "query": "D2C brand opens new stores cities"},
+    {"signal": "Moving off SMS", "type": "regulation", "intent": 2, "look_for": "brands moving from SMS to WhatsApp after TRAI SMS rules or Meta pricing changes", "query": "brands shift from SMS to WhatsApp"}
+  ]
+}

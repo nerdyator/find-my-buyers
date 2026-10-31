@@ -140,7 +140,7 @@ button{font-family:inherit;cursor:pointer;color:var(--ink)}
   <div class="sp"></div>
   <span class="tw"><button class="tool" id="bRecipe">Steal the recipe</button><span class="q" tabindex="0">?<span class="tip"><b>Steal the recipe</b>Downloads the crew's plan for the business you just ran: what it sells, who buys it, the moment buyers are ready, and the 8 signals to watch with the searches used. Reuse it as a template, sharpen the signals, or feed it into your own tool.</span></span></span>
   <span class="tw"><button class="tool" id="bSave">Save run</button><span class="q" tabindex="0">?<span class="tip"><b>Save run</b>Saves the whole run (the chat, every clue on the wall and the letters) as a file on your computer. Use Replay to play it back later.</span></span></span>
-  <span class="tw"><button class="tool" id="bLoad">Replay</button><span class="q" tabindex="0">?<span class="tip"><b>Replay</b>Opens a saved run and plays it back as if the crew were working live. Handy as a backup for a demo, because nothing needs to search again.</span></span></span>
+  <span class="tw"><button class="tool" id="bLoad">Replay</button><span class="q" tabindex="0">?<span class="tip"><b>Replay</b>Opens a saved run and plays it back as if the crew were working live. Handy as a backup for a demo, because nothing needs to search again. Also opens a stolen recipe: Scout then hunts with your signals instead of Sniff's.</span></span></span>
   <span class="tw"><button class="tool" id="bSet">Use my own key</button><span class="q" tabindex="0">?<span class="tip"><b>Use my own key (optional)</b>The crew already works without a key. Add your own AI key (Claude, Gemini, OpenAI, Perplexity, OpenRouter or Ollama) if you want runs to use your own account.</span></span></span>
 </div>
 
@@ -203,7 +203,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const TODAY=new Date().toISOString().slice(0,10);
-let mode='company', RUN=null, busy=false, t0=0, tick=null, replaying=false;
+let mode='company', RUN=null, busy=false, t0=0, tick=null, replaying=false, RECIPE=null;
 
 /* ---------- network: go through the local helper when it is running ---------- */
 let VIA_HELPER=null;
@@ -454,7 +454,7 @@ Return ONLY JSON: {"name":"short name","one_liner":"what they sell in plain word
   scout:(p,items,geo)=>`Today is ${TODAY}. Find REAL, recent (ideally last 12 months) public evidence that specific organisations are about to need what ${p.name} sells (${p.one_liner}).
 Trigger moment: ${p.trigger_moment}. ${geo?'Focus: '+geo+'.':''}
 Look for:
-${items.map((r,i)=>`${i+1}. ${r.signal}: ${r.look_for} (try: ${r.query})`).join('\n')}
+${items.map((r,i)=>`${i+1}. ${r.signal}: ${r.look_for} (try: ${r.query})${r.intent?` (intent if found: ${r.intent})`:''}`).join('\n')}
 Only include organisations that appear in your search results. Never invent companies, dates, people or links.
 Targets must be END BUYERS (organisations that would pay for this), never vendors in the same space: skip ${p.name}, its competitors (${(p.competitors||[]).join(', ')}), other companies that sell similar products or services, and any organisation already shown as ${p.name}'s customer or partner (for example in ${p.name}'s own posts).
 A job post only counts if the hiring organisation is a buyer (e.g. a utility hiring a drone programme lead), not a tech company hiring engineers.
@@ -487,7 +487,11 @@ async function go(){
   emit('reset'); emit('you',{text:`find me buyers for ${q}${geo?` (focus: ${geo})`:''}`});
   try{
     emit('typing',{who:'sniff'});
-    const a=await ask(P.sniff(q,mode,geo),{search:true,queries:[q,`${q} competitors${geo?' '+geo:''}`]}); const p=a.data; RUN.profile=p; RUN.recipe=(p.signals||[]).slice(0,8);
+    // a loaded recipe replaces Sniff while the input still matches its business name
+    const B=RECIPE&&q===RECIPE.business?.name?RECIPE.business:null;
+    const p=B?{name:B.name,one_liner:B.sells,buyers:B.buyers||[],trigger_moment:B.trigger_moment,competitors:B.competitors||[],signals:RECIPE.signals_to_watch,say_1:`using your recipe for ${B.name}. skipping the guesswork.`}
+      :(await ask(P.sniff(q,mode,geo),{search:true,queries:[q,`${q} competitors${geo?' '+geo:''}`]})).data;
+    RUN.profile=p; RUN.recipe=(p.signals||[]).slice(0,8);
     if(!p.one_liner||!(p.signals||[]).length){ emit('say',{who:'sniff',text:`couldn't work out what "${q}" sells. try their website instead, like ${q.includes('.')?q:q.split(' ')[0].toLowerCase()+'.com'}`}); return }
     emit('say',{who:'sniff',text:p.say_1||`read up on ${p.name}.`});
     emit('center',{name:p.name,one_liner:p.one_liner,trigger_moment:p.trigger_moment});
@@ -498,7 +502,9 @@ async function go(){
     const seen=new Set(); let found=[];
     await Promise.all(groups.map(async g=>{
       try{ const h=await ask(P.scout(p,g,geo),{search:true,queries:g.map(r=>r.query+(geo&&!r.query.includes(geo)?' '+geo:''))});
-        for(const s of (Array.isArray(h.data)?h.data:[])){ if(!s?.company) continue; const yr=+(String(s.date||'').match(/20\d\d/)||[0])[0]; if(yr && yr < new Date().getFullYear()-1) continue; const k=s.company.toLowerCase().replace(/[^a-z0-9]/g,''); if(seen.has(k)) continue; seen.add(k); found.push(s);
+        for(const s of (Array.isArray(h.data)?h.data:[])){ if(!s?.company) continue; const yr=+(String(s.date||'').match(/20\d\d/)||[0])[0]; if(yr && yr < new Date().getFullYear()-1) continue;
+          const cap=Math.max(0,...RUN.recipe.filter(r=>r.type===s.type&&r.intent).map(r=>+r.intent)); if(cap) s.intent=Math.min(+s.intent||0,cap); // recipe intent is a ceiling per signal type
+          const k=s.company.toLowerCase().replace(/[^a-z0-9]/g,''); if(seen.has(k)) continue; seen.add(k); found.push(s);
           if(typingEls.scout){typingEls.scout.remove(); delete typingEls.scout}
           emit('say',{who:'scout',text:s.say||`${s.company}: ${s.headline}`}); emit('clue',{s}); await sleep(350); emit('typing',{who:'scout'}) }
       }catch(e){ console.warn(e) }
@@ -523,9 +529,12 @@ $('#go').onclick=go; $('#q').addEventListener('keydown',e=>{if(e.key==='Enter')g
 function dl(name,obj){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));a.download=name;a.click()}
 const slug=s=>String(s||'run').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40);
 $('#bSave').onclick=()=>{ if(!RUN?.events?.length) return alert('Run the crew first.'); clues.forEach(c=>{ if(c.m && !RUN.events.some(e=>e.type==='letter'&&e.p.company===c.s.company)) RUN.events.push({t:RUN.events.at(-1).t+100,type:'letter',p:{company:c.s.company,m:c.m,open:false}}) }); dl(`find-my-buyers-${slug(RUN.input)}.json`,RUN) };
-$('#bRecipe').onclick=()=>{ if(!RUN?.profile) return alert('Run the crew first.'); dl(`signal-recipe-${slug(RUN.profile.name)}.json`,{recipe:'find-my-buyers/v0.1',business:{name:RUN.profile.name,sells:RUN.profile.one_liner,buyers:RUN.profile.buyers,trigger_moment:RUN.profile.trigger_moment},signals_to_watch:RUN.recipe}) };
+$('#bRecipe').onclick=()=>{ if(!RUN?.profile) return alert('Run the crew first.'); dl(`signal-recipe-${slug(RUN.profile.name)}.json`,{recipe:'find-my-buyers/v0.1',business:{name:RUN.profile.name,sells:RUN.profile.one_liner,buyers:RUN.profile.buyers,trigger_moment:RUN.profile.trigger_moment,competitors:RUN.profile.competitors},signals_to_watch:RUN.recipe}) };
 $('#bLoad').onclick=()=>$('#file').click();
-$('#file').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const R=JSON.parse(await f.text()); e.target.value=''; replay(R) };
+$('#file').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const R=JSON.parse(await f.text()); e.target.value='';
+  // saved runs also carry a "recipe" key, so detect recipes by signals_to_watch
+  if(R.signals_to_watch){ RECIPE=R; $('#q').value=R.business?.name||''; bubble('sniff',esc(`got your recipe for ${R.business?.name}: ${R.signals_to_watch.length} signals. hit go.`)); return }
+  replay(R) };
 async function replay(R){
   if(busy) return; busy=true; replaying=true; RUN=R; $('#q').value=R.input||''; $('#geo').value=R.geo||''; $('#go').disabled=true; clock(true);
   const evs=R.events||[]; const span=Math.max(1,(evs.at(-1)?.t||1)); const k=Math.min(1,28000/span); let last=0;

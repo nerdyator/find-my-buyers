@@ -54,9 +54,9 @@ Saved run (Save run / Replay):
  "events":[{"t":0,"type":"you|typing|say|center|clue|letter|error|reset","p":{}}]}
 ```
 
-Recipe (Steal the recipe):
+Recipe (Steal the recipe; open it with Replay and Scout uses it instead of Sniff while the input matches `business.name`. Optional `intent` 1-5 per signal is passed to Scout):
 ```json
-{"recipe":"find-my-buyers/v0.1","business":{"name":"","sells":"","buyers":[],"trigger_moment":""},"signals_to_watch":[]}
+{"recipe":"find-my-buyers/v0.1","business":{"name":"","sells":"","buyers":[],"trigger_moment":"","competitors":[]},"signals_to_watch":[{"signal":"","type":"","intent":5,"look_for":"","query":""}]}
 ```
 
 ## Rules the prompts enforce (keep them unless you mean to change them)
